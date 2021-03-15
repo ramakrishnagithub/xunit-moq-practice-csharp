@@ -16,14 +16,17 @@ namespace RK.Practice.Examples.Xunit.Tests
             var application =new CreditCardApplication{ GrossAnnualIncome = 100_000 };
             CreditCardApplicationDecision decision = sut.Evaluate(application);
             Assert.Equal(CreditCardApplicationDecision.AutoAccepted, decision);
-        }
+        }        
+
         [Fact]
         public void ReferYoungApplications()
         {
             Mock<IFrequentFlyerNumberValidator> mockValidator = new Mock<IFrequentFlyerNumberValidator>();
             var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
-            var application = new CreditCardApplication { Age = 19 };
+            var application = new CreditCardApplication { Age = 19 };            
+            
             CreditCardApplicationDecision decision = sut.Evaluate(application);
+           
             Assert.Equal(CreditCardApplicationDecision.ReferredToHuman, decision);
         }
 
@@ -142,6 +145,43 @@ namespace RK.Practice.Examples.Xunit.Tests
 
             CreditCardApplicationDecision decision = sut.Evaluate(application);
 
+            Assert.Equal(CreditCardApplicationDecision.AutoDeclined, decision);
+        }
+
+        /// <summary>
+        /// Auto Mock hierarchies
+        /// </summary>
+        [Fact]
+        public void ReferWhenLicenseKeyExpired_AutoMockHierarchies()
+        {
+            var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("EXPIRED");
+            mockValidator.Setup(x => x.IsValid(It.IsAny<string>())).Returns(true);
+
+            var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+            var application = new CreditCardApplication { Age = 42 };
+
+            CreditCardApplicationDecision decision = sut.EvaluateUsingServiceInformation(application);
+
+            Assert.Equal(CreditCardApplicationDecision.ReferredToHuman, decision);
+        }
+
+        [Fact]
+        public void ReferYoungApplicationsWithAutoMock()
+        {
+           var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+            
+            /* Without the below property the test fails with Object reference error bcz ServiceInformation 
+                is not setup.To Fix the problem used DefaultValue Mock
+            */
+            mockValidator.DefaultValue = DefaultValue.Mock; //Without this pro
+            mockValidator.Setup(x => x.IsValid(It.IsAny<string>())).Returns(true);
+
+            var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+            var application = new CreditCardApplication { Age = 19 };
+            //uncomment for with Automock hierarchy
+            CreditCardApplicationDecision decision = sut.EvaluateUsingServiceInformation(application);
             Assert.Equal(CreditCardApplicationDecision.ReferredToHuman, decision);
         }
 
@@ -149,6 +189,26 @@ namespace RK.Practice.Examples.Xunit.Tests
         {
             // E.g. read from vendor-supplied constants file
             return "EXPIRED";
+        }
+
+        /// <summary>
+        /// Track Property changes.Mock generally does not remember properties so
+        /// need to use SetupProperty or SetupAllProperties.
+        /// </summary>
+        [Fact]
+        public void UseDetailedLookupForOlderApplications()
+        {
+            var mockValidator = new Mock<IFrequentFlyerNumberValidator>();
+
+            //mockValidator.SetupProperty(x => x.ValidationMode);
+            mockValidator.SetupAllProperties();
+            mockValidator.Setup(x => x.ServiceInformation.License.LicenseKey).Returns("OK");
+        
+            var sut = new CreditCardApplicationEvaluator(mockValidator.Object);
+            var application = new CreditCardApplication { Age = 30 };
+            sut.EvaluateUsingServiceInformation(application);
+
+            Assert.Equal(ValidationMode.Detailed, mockValidator.Object.ValidationMode);
         }
     }
 }

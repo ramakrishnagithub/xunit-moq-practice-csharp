@@ -32,5 +32,12 @@ namespace RK.Practice.Examples.Xunit.Lib
                 throw new NotImplementedException("For demo purposes");
             }
         }
+
+        public IServiceInformation ServiceInformation => throw new NotImplementedException();
+        public ValidationMode ValidationMode
+        {
+            get => throw new NotImplementedException("For demo purposes");
+            set => throw new NotImplementedException("For demo purposes");
+        }
     }    
 }
