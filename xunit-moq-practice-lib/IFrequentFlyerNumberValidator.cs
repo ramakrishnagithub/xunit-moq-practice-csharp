@@ -18,5 +18,6 @@ namespace RK.Practice.Examples.Xunit.Lib
         string LicenseKey { get; }
         IServiceInformation ServiceInformation { get; }
         ValidationMode ValidationMode { get; set; }
+        event EventHandler ValidatorLookupPerformed;
     }
 }
